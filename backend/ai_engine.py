@@ -1,47 +1,44 @@
-# AI Engine - Core Logic
 import os
-import warnings
 import google.generativeai as genai
-from dotenv import load_dotenv
 
-warnings.filterwarnings("ignore", category=FutureWarning)
-warnings.filterwarnings("ignore", category=UserWarning)
 
-load_dotenv()
+GEMINI_API_KEY = "AIzaSyBlnrCRnLp3M_6s-mVzfcNP0C8nO5olTKE"
 
-API_KEY = os.getenv("GEMINI_API_KEY")
+class CodeAnalyzer:
+    def __init__(self):
+        try:
+            # Configure Gemini
+            api_key = os.getenv("GEMINI_API_KEY") or GEMINI_API_KEY
+            genai.configure(api_key=api_key)
+            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            print("✅ AI Engine Connected to Gemini")
+        except Exception as e:
+            print(f"❌ AI Engine Error: {e}")
+            self.model = None
 
-if not API_KEY:
-    raise ValueError("CRITICAL ERROR: API Key not found. Please check your .env file.")
-
-genai.configure(api_key=API_KEY)
-model = genai.GenerativeModel('gemini-2.5-flash')
-
-def analyze_code_chunk(file_name, code_content):
-    """
-    Sends a specific file to Google Gemini for a code review.
-    We instruct the AI to act as a Senior Engineer.
-    """
-    prompt = f"""
-    You are a Senior Software Engineer and Code Reviewer.
-    Review the following file from a GitHub repository: {file_name}
-    
-    Code Content:
-    ```
-    {code_content}
-    ```
-    
-    Please provide a structured review covering:
-    1. **Potential Bugs:** Logical errors or runtime crashes.
-    2. **Security Risks:** Vulnerabilities (e.g., SQL injection, exposed keys).
-    3. **Improvement Suggestions:** clean code practices, optimizations, or better naming conventions.
-    
-    Keep your response concise, professional, and formatted with bullet points.
-    """
-    
-    try:
+    def analyze_repo(self, repo_url):
+        if not self.model:
+            return {"summary": "Error: AI not connected. Check API Key.", "rating": "F", "bugs": [], "security": []}
+            
+        print(f"🤖 AI Engine: Analyzing {repo_url}...")
         
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        return f"Error analyzing {file_name}: {str(e)}"
+        # Simple prompt to test the connection
+        prompt = f"""
+        Analyze this GitHub Repository URL based on its name and typical structure: {repo_url}
+        
+        Provide a PRELIMINARY risk assessment.
+        Format response strictly as JSON:
+        {{
+            "summary": "Brief overview of what this project likely does...",
+            "rating": "Letter Grade (A-F)",
+            "bugs": ["List 2 potential bugs"],
+            "security": ["List 2 security checks"]
+        }}
+        """
+
+        try:
+            response = self.model.generate_content(prompt)
+            # Return the raw text for now so we can see it working
+            return {"summary": response.text, "rating": "B", "bugs": [], "security": []}
+        except Exception as e:
+            return {"summary": f"Gemini Error: {str(e)}", "rating": "Error", "bugs": [], "security": []}
